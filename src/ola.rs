@@ -23,11 +23,11 @@ where
         let len = window_size.min(signal.num_samples() - i);
         let index = (i as f32 * scale_factor) as usize;
 
-        let mut new_window = new_signal.window_mut(index..index + len);
-        new_window += signal.window(i..i + len) * SamplesRef(&window[..len]);
+        let mut window_signal = new_signal.window_mut(index..index + len);
+        window_signal += signal.window(i..i + len) * SamplesRef(&window[..len]);
 
-        let mut weights_window = new_weights.window_mut(index..index + len);
-        weights_window += SamplesRef(&window[..len]);
+        let mut window_weights = new_weights.window_mut(index..index + len);
+        window_weights += SamplesRef(&window[..len]);
     }
 
     new_signal.samples_mut()

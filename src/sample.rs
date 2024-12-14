@@ -3,6 +3,9 @@ use std::{alloc::Layout, ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, 
 pub trait AudioSample:
     Copy
     + num_traits::Num
+    + num_traits::Bounded
+    + std::ops::Neg<Output = Self>
+    + PartialOrd
     + ConvertSample<i16>
     + ConvertSample<i32>
     + ConvertSample<f32>
