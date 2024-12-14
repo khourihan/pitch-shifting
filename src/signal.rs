@@ -7,7 +7,7 @@ use crate::sample::{AudioSample, ConvertSample, SampleFormat};
 pub struct Signal<T: AudioSample> {
     /// All the samples of the signal.
     // TODO: Consider Arc<[T]>
-    samples: Box<[T]>,
+    samples: Vec<T>,
     /// The number of samples per second, in Hz.
     ///
     /// A value of 44100 represents a typical 44.1 kHz sample rate.
@@ -15,7 +15,7 @@ pub struct Signal<T: AudioSample> {
 }
 
 impl<T: AudioSample> Signal<T> {
-    /// Create a new signal from a given `sample_rate` in Hz, a given `length` in seconds, and a 
+    /// Create a new [`Signal`] from a given `sample_rate` in Hz, a given `length` in seconds, and a 
     /// given function `f` that returns the amplitude of the wave at a given time in seconds.
     pub fn from_fn<F>(sample_rate: u32, length: f32, f: F) -> Signal<T>
     where
@@ -27,6 +27,47 @@ impl<T: AudioSample> Signal<T> {
                 .collect(),
             sample_rate,
         }
+    }
+
+    /// Collect the given iterator into a [`Signal`] given the `sample_rate` in Hz.
+    #[inline(always)]
+    pub fn from_iter<I>(sample_rate: u32, iter: I) -> Signal<T>
+    where
+        I: Iterator<Item = T>
+    {
+        Signal::<T> {
+            samples: iter.collect(),
+            sample_rate,
+        }
+    }
+
+    /// The number of samples per second, in Hz.
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// The number of samples in this [`Signal`].
+    #[inline(always)]
+    pub fn num_samples(&self) -> usize {
+        self.samples.len()
+    }
+
+    /// Iterate over all the samples in this [`Signal`] by value.
+    #[inline(always)]
+    pub fn into_samples(self) -> impl Iterator<Item = T> {
+        self.samples.into_iter()
+    }
+
+    /// Iterate over all the samples in this [`Signal`] by reference.
+    #[inline(always)]
+    pub fn samples(&self) -> impl Iterator<Item = &T> {
+        self.samples.iter()
+    }
+
+    /// Iterate over all the samples in this [`Signal`] by mutable reference.
+    #[inline(always)]
+    pub fn samples_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.samples.iter_mut()
     }
 
     /// Read the WAV file at the given `path`, converting to the appropriate type and adding
@@ -71,7 +112,7 @@ impl<T: AudioSample> Signal<T> {
 
         let samples_mono = samples.chunks_exact(spec.channels as usize)
             .map(|c| c.iter().fold(T::zero(), |acc, &s| acc + s))
-            .collect::<Box<[T]>>();
+            .collect::<Vec<T>>();
 
         Ok(Signal {
             samples: samples_mono,
