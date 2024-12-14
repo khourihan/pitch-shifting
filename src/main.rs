@@ -6,6 +6,7 @@ mod merge;
 mod ola;
 mod sola;
 mod windows;
+mod complex;
 
 const WINDOW_SIZE_MS: f32 = 20.0;
 const HOP_LENGTH_MS: f32 = 8.0;
