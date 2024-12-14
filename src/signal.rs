@@ -7,7 +7,6 @@ pub struct Signal<T: AudioSample> {
     // TODO: Consider Arc<[T]>
     samples: Box<[T]>,
     sample_rate: u32,
-    bits_per_sample: u16,
 }
 
 impl<T: AudioSample> Signal<T> {
@@ -51,8 +50,6 @@ impl<T: AudioSample> Signal<T> {
             }
         };
 
-        let bits_per_sample = T::bits_per_sample();
-
         let samples_mono = samples.chunks_exact(spec.channels as usize)
             .map(|c| c.iter().fold(T::zero(), |acc, &s| acc + s))
             .collect::<Box<[T]>>();
@@ -60,7 +57,6 @@ impl<T: AudioSample> Signal<T> {
         Ok(Signal {
             samples: samples_mono,
             sample_rate: spec.sample_rate,
-            bits_per_sample,
         })
     }
     
@@ -72,7 +68,7 @@ impl<T: AudioSample> Signal<T> {
         let spec = hound::WavSpec {
             channels: 1,
             sample_rate: self.sample_rate,
-            bits_per_sample: self.bits_per_sample,
+            bits_per_sample: T::bits_per_sample(),
             sample_format: if let SampleFormat::Int = T::sample_format() { hound::SampleFormat::Int } else { hound::SampleFormat::Float },
         };
 
