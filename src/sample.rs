@@ -151,24 +151,3 @@ impl ConvertSample<f32> for f32 {
         self
     }
 }
-
-impl ConvertSample<i16> for f64 {
-    #[inline(always)]
-    fn convert_sample(self) -> i16 {
-        ((self * (i16::MAX as f64)).clamp(i16::MIN as f64, i16::MAX as f64)).round() as i16
-    }
-}
-
-impl ConvertSample<i32> for f64 {
-    #[inline(always)]
-    fn convert_sample(self) -> i32 {
-        ((self * (i32::MAX as f64)).clamp(i32::MIN as f64, i32::MAX as f64)).round() as i32
-    }
-}
-
-impl ConvertSample<f32> for f64 {
-    #[inline(always)]
-    fn convert_sample(self) -> f32 {
-        self as f32
-    }
-}

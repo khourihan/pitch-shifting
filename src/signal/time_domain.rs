@@ -1,3 +1,5 @@
+use std::{ops::{Index, IndexMut}, slice::SliceIndex};
+
 use thiserror::Error;
 
 use crate::sample::{AudioSample, ConvertSample, SampleFormat};
@@ -41,6 +43,14 @@ impl<T: AudioSample> TimeDomainSignal<T> {
         }
     }
 
+    #[inline(always)]
+    pub fn from_zeros(num_samples: usize, sample_rate: u32) -> TimeDomainSignal<T> {
+        TimeDomainSignal::<T> {
+            samples: vec![T::zero(); num_samples],
+            sample_rate,
+        }
+    }
+
     /// The number of samples per second, in Hz.
     pub fn sample_rate(&self) -> u32 {
         self.sample_rate
@@ -72,8 +82,21 @@ impl<T: AudioSample> TimeDomainSignal<T> {
 
     /// Retrieve the samples of the specified window.
     #[inline(always)]
-    pub fn window(&self, start: usize, end: usize) -> &[T] {
-        &self.samples[start..end]
+    pub fn window<R>(&self, range: R) -> &[T]
+    where
+        Vec<T>: Index<R, Output = [T]>,
+        R: SliceIndex<[T]>,
+    {
+        &self.samples[range]
+    }
+
+    #[inline(always)]
+    pub fn window_mut<R>(&mut self, range: R) -> &mut [T]
+    where
+        Vec<T>: IndexMut<R, Output = [T]>,
+        R: SliceIndex<[T]>,
+    {
+        &mut self.samples[range]
     }
 
     /// Read the WAV file at the given `path`, converting to the appropriate type and adding
@@ -152,6 +175,20 @@ impl TimeDomainSignal<f32> {
     pub fn normalize(&mut self) {
         let inv_max = 1.0 / self.samples().fold(0f32, |acc, &s| acc.max(s.abs()));
         self.samples_mut().for_each(|s| *s *= inv_max);
+    }
+}
+
+impl<T: AudioSample> Index<usize> for TimeDomainSignal<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.samples.get(index).unwrap()
+    }
+}
+
+impl<T: AudioSample> IndexMut<usize> for TimeDomainSignal<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.samples.get_mut(index).unwrap()
     }
 }
 
