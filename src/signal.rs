@@ -2,14 +2,33 @@ use thiserror::Error;
 
 use crate::sample::{AudioSample, ConvertSample, SampleFormat};
 
+/// A single-channel audio signal stored in the time domain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Signal<T: AudioSample> {
+    /// All the samples of the signal.
     // TODO: Consider Arc<[T]>
     samples: Box<[T]>,
+    /// The number of samples per second, in Hz.
+    ///
+    /// A value of 44100 represents a typical 44.1 kHz sample rate.
     sample_rate: u32,
 }
 
 impl<T: AudioSample> Signal<T> {
+    /// Create a new signal from a given `sample_rate` in Hz, a given `length` in seconds, and a 
+    /// given function `f` that returns the amplitude of the wave at a given time in seconds.
+    pub fn from_fn<F>(sample_rate: u32, length: f32, f: F) -> Signal<T>
+    where
+        F: Fn(f32) -> T
+    {
+        Signal::<T> {
+            samples: (0..(sample_rate as f32 * length).floor() as u32)
+                .map(|t| f(t as f32 / sample_rate as f32))
+                .collect(),
+            sample_rate,
+        }
+    }
+
     /// Read the WAV file at the given `path`, converting to the appropriate type and adding
     /// multiple channels into a single one if necessary.
     pub fn read_mono<P>(path: P) -> Result<Signal<T>, SignalReadError>
