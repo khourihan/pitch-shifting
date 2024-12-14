@@ -3,8 +3,8 @@ use thiserror::Error;
 use crate::sample::{AudioSample, ConvertSample, SampleFormat};
 
 /// A single-channel audio signal stored in the time domain.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Signal<T: AudioSample> {
+#[derive(Debug, Clone)]
+pub struct TimeDomainSignal<T: AudioSample> {
     /// All the samples of the signal.
     // TODO: Consider Arc<[T]>
     samples: Vec<T>,
@@ -14,14 +14,14 @@ pub struct Signal<T: AudioSample> {
     sample_rate: u32,
 }
 
-impl<T: AudioSample> Signal<T> {
-    /// Create a new [`Signal`] from a given `sample_rate` in Hz, a given `length` in seconds, and a 
+impl<T: AudioSample> TimeDomainSignal<T> {
+    /// Create a new [`TimeDomainSignal`] from a given `sample_rate` in Hz, a given `length` in seconds, and a 
     /// given function `f` that returns the amplitude of the wave at a given time in seconds.
-    pub fn from_fn<F>(sample_rate: u32, length: f32, f: F) -> Signal<T>
+    pub fn from_fn<F>(sample_rate: u32, length: f32, f: F) -> TimeDomainSignal<T>
     where
         F: Fn(f32) -> T
     {
-        Signal::<T> {
+        TimeDomainSignal::<T> {
             samples: (0..(sample_rate as f32 * length).floor() as u32)
                 .map(|t| f(t as f32 / sample_rate as f32))
                 .collect(),
@@ -29,13 +29,13 @@ impl<T: AudioSample> Signal<T> {
         }
     }
 
-    /// Collect the given iterator into a [`Signal`] given the `sample_rate` in Hz.
+    /// Collect the given iterator into a [`TimeDomainSignal`] given the `sample_rate` in Hz.
     #[inline(always)]
-    pub fn from_iter<I>(sample_rate: u32, iter: I) -> Signal<T>
+    pub fn from_iter<I>(sample_rate: u32, iter: I) -> TimeDomainSignal<T>
     where
         I: Iterator<Item = T>
     {
-        Signal::<T> {
+        TimeDomainSignal::<T> {
             samples: iter.collect(),
             sample_rate,
         }
@@ -46,33 +46,39 @@ impl<T: AudioSample> Signal<T> {
         self.sample_rate
     }
 
-    /// The number of samples in this [`Signal`].
+    /// The number of samples in this [`TimeDomainSignal`].
     #[inline(always)]
     pub fn num_samples(&self) -> usize {
         self.samples.len()
     }
 
-    /// Iterate over all the samples in this [`Signal`] by value.
+    /// Iterate over all the samples in this [`TimeDomainSignal`] by value.
     #[inline(always)]
     pub fn into_samples(self) -> impl Iterator<Item = T> {
         self.samples.into_iter()
     }
 
-    /// Iterate over all the samples in this [`Signal`] by reference.
+    /// Iterate over all the samples in this [`TimeDomainSignal`] by reference.
     #[inline(always)]
     pub fn samples(&self) -> impl Iterator<Item = &T> {
         self.samples.iter()
     }
 
-    /// Iterate over all the samples in this [`Signal`] by mutable reference.
+    /// Iterate over all the samples in this [`TimeDomainSignal`] by mutable reference.
     #[inline(always)]
     pub fn samples_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.samples.iter_mut()
     }
 
+    /// Retrieve the samples of the specified window.
+    #[inline(always)]
+    pub fn window(&self, start: usize, end: usize) -> &[T] {
+        &self.samples[start..end]
+    }
+
     /// Read the WAV file at the given `path`, converting to the appropriate type and adding
     /// multiple channels into a single one if necessary.
-    pub fn read_mono<P>(path: P) -> Result<Signal<T>, SignalReadError>
+    pub fn read_mono<P>(path: P) -> Result<TimeDomainSignal<T>, SignalReadError>
     where
         P: AsRef<std::path::Path>,
         T: hound::Sample,
@@ -114,7 +120,7 @@ impl<T: AudioSample> Signal<T> {
             .map(|c| c.iter().fold(T::zero(), |acc, &s| acc + s))
             .collect::<Vec<T>>();
 
-        Ok(Signal {
+        Ok(TimeDomainSignal {
             samples: samples_mono,
             sample_rate: spec.sample_rate,
         })
@@ -139,6 +145,13 @@ impl<T: AudioSample> Signal<T> {
         }
 
         Ok(())
+    }
+}
+
+impl TimeDomainSignal<f32> {
+    pub fn normalize(&mut self) {
+        let inv_max = 1.0 / self.samples().fold(0f32, |acc, &s| acc.max(s.abs()));
+        self.samples_mut().for_each(|s| *s *= inv_max);
     }
 }
 
