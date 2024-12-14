@@ -7,7 +7,7 @@ mod ola;
 mod windows;
 
 fn main() {
-    let signal: TimeDomainSignal<f32> = TimeDomainSignal::read_mono("input/you-are-a-toy.wav").unwrap();
+    let signal: TimeDomainSignal<f32> = TimeDomainSignal::read_mono("input/powerhse.wav").unwrap();
 
     let ola = ola::ola(
         signal,
@@ -17,5 +17,5 @@ fn main() {
         windows::hann_window,
     );
 
-    ola.write("output/you-are-a-toy.wav").unwrap();
+    ola.write("output/powerhse.wav").unwrap();
 }

@@ -2,7 +2,7 @@ use std::{ops::{Index, IndexMut}, slice::SliceIndex};
 
 use thiserror::Error;
 
-use crate::sample::{AudioSample, ConvertSample, SampleFormat};
+use crate::sample::{AudioSample, ConvertSample, SampleFormat, SamplesRef, SamplesMut};
 
 /// A single-channel audio signal stored in the time domain.
 #[derive(Debug, Clone)]
@@ -82,21 +82,21 @@ impl<T: AudioSample> TimeDomainSignal<T> {
 
     /// Retrieve the samples of the specified window.
     #[inline(always)]
-    pub fn window<R>(&self, range: R) -> &[T]
+    pub fn window<R>(&self, range: R) -> SamplesRef<T>
     where
         Vec<T>: Index<R, Output = [T]>,
         R: SliceIndex<[T]>,
     {
-        &self.samples[range]
+        SamplesRef(&self.samples[range])
     }
 
     #[inline(always)]
-    pub fn window_mut<R>(&mut self, range: R) -> &mut [T]
+    pub fn window_mut<R>(&mut self, range: R) -> SamplesMut<T>
     where
         Vec<T>: IndexMut<R, Output = [T]>,
         R: SliceIndex<[T]>,
     {
-        &mut self.samples[range]
+        SamplesMut(&mut self.samples[range])
     }
 
     /// Read the WAV file at the given `path`, converting to the appropriate type and adding

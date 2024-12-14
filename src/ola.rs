@@ -1,4 +1,4 @@
-use crate::{sample::AudioSample, signal::time_domain::TimeDomainSignal};
+use crate::{sample::{AudioSample, SamplesRef}, signal::time_domain::TimeDomainSignal, windows::build_window};
 
 /// Overlap Add
 pub fn ola<T, F>(
@@ -12,25 +12,22 @@ where
     T: AudioSample,
     F: Fn(f32, usize) -> T
 {
-    let window_width = window_size as f32 / 2.0;
     let synth_hop_length = (hop_length as f32 * scale_factor) as usize;
     let new_len = (signal.num_samples() as f32 / hop_length as f32).ceil() as usize * synth_hop_length + window_size;
     let mut new_signal = TimeDomainSignal::from_zeros(new_len, signal.sample_rate());
     let mut new_weights = TimeDomainSignal::from_zeros(new_len, signal.sample_rate());
 
+    let window = build_window(window_fn, window_size);
+
     for i in (0..signal.num_samples()).step_by(hop_length) {
         let len = window_size.min(signal.num_samples() - i);
         let index = (i as f32 * scale_factor) as usize;
 
-        new_signal.window_mut(index..index + len)
-            .iter_mut()
-            .zip(new_weights.window_mut(index..index + len).iter_mut())
-            .enumerate()
-            .for_each(|(j, (s, w))| {
-                let scale = window_fn(j as f32 - window_width, window_size);
-                *w = *w + scale;
-                *s = *s + signal[i + j] * scale;
-            });
+        let mut new_window = new_signal.window_mut(index..index + len);
+        new_window += signal.window(i..i + len) * SamplesRef(&window[..len]);
+
+        let mut weights_window = new_weights.window_mut(index..index + len);
+        weights_window += SamplesRef(&window[..len]);
     }
 
     new_signal.samples_mut()
@@ -38,8 +35,6 @@ where
         .for_each(|(s, w)| {
             if w != T::zero() {
                 *s = *s / w;
-            } else {
-                *s = T::zero();
             }
         });
 
