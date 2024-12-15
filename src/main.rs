@@ -19,7 +19,7 @@ fn main() {
     let window_size = (sample_rate as f32 * WINDOW_SIZE_MS / 1000.0) as usize;
     let hop_length = (sample_rate as f32 * HOP_LENGTH_MS / 1000.0) as usize;
 
-    let stretched = sola::sola(
+    let stretched = phase_vocoder::phase_vocoder(
         signal,
         2.0,
         window_size,

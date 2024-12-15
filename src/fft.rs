@@ -42,18 +42,23 @@ where
     T: FftNum + AudioSample,
     F: Fn(f32, usize) -> T,
 {
-    let len = signal.len() / hop_length;
+    let len = signal.len().div_ceil(hop_length);
     let mut spectrum_samples = Array2::from_elem((len, window_size), Complex { re: T::zero(), im: T::zero() });
 
     let window = build_window(window_fn, window_size);
 
     for i in (0..signal.len()).step_by(hop_length) {
         let len = window_size.min(signal.len() - i);
+        let index = i / hop_length;
 
         let window_signal = &signal.slice(s![i..i + len]) * &window.slice(s![..len]);
-        let spectrum = fft(window_signal.view());
+        let mut spectrum = fft(window_signal.view());
 
-        let mut window_spectrum = spectrum_samples.slice_mut(s![i, ..]);
+        if spectrum.len() < window_size {
+            let _ = spectrum.append(Axis(0), Array1::from_elem(window_size - spectrum.len(), Complex { re: T::zero(), im: T::zero() }).view());
+        }
+
+        let mut window_spectrum = spectrum_samples.slice_mut(s![index, ..]);
         window_spectrum += &spectrum;
     }
 
@@ -72,7 +77,7 @@ where
 {
     let mut samples = Array1::from_elem(num_samples, T::zero());
 
-    for (i, spectrum) in signal.axis_iter(Axis(0)).enumerate() {
+    for (i, spectrum) in signal.outer_iter().enumerate() {
         let window_samples = ifft(spectrum);
         let start = i * hop_length;
         

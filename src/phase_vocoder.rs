@@ -1,6 +1,6 @@
 use rustfft::FftNum;
 
-use crate::{fft::{istft, stft}, sample::AudioSample, signal::TimeDomainSignal};
+use crate::{complex::Complex, fft::{istft, stft}, sample::AudioSample, signal::{SpectrumSignal, TimeDomainSignal}};
 
 pub fn phase_vocoder<T, F>(
     signal: TimeDomainSignal<T>,
@@ -13,11 +13,12 @@ where
     T: AudioSample + FftNum,
     F: Fn(f32, usize) -> T
 {
-    let new_len = (signal.len() as f32 / hop_length as f32).ceil() as usize * hop_length + window_size;
+    let synth_hop_length = hop_length;
+    // let synth_hop_length = (hop_length as f32 * scale_factor) as usize;
+    let new_len = (signal.len() as f32 / hop_length as f32).ceil() as usize * synth_hop_length + window_size;
+
     let stft = stft(&signal, window_size, hop_length, window_fn);
-    // let interp_stft = SpectrumSignal::default();
+    let interp_stft = SpectrumSignal::from_elem((new_len, window_size), Complex { re: T::zero(), im: T::zero() });
 
-    let istft = istft(stft, window_size, hop_length, new_len);
-
-    istft
+    istft(stft, window_size, hop_length, new_len)
 }
