@@ -1,10 +1,10 @@
-use num_traits::Zero;
+use ndarray::{s, Array1, Array2, ArrayView1, Axis};
 use rustfft::{FftNum, FftPlanner, num_complex::Complex as FftComplex};
 
-use crate::{complex::Complex, sample::{AudioSample, SamplesRef}, signal::{SpectrumSignal, TimeDomainSignal}, windows::build_window};
+use crate::{complex::Complex, sample::AudioSample, signal::{SpectrumSignal, TimeDomainSignal}, windows::build_window};
 
 /// Compute the Fast Fourier Transform of the given signal in the time domain.
-pub fn fft<T>(signal: &[T]) -> Vec<Complex<T>>
+pub fn fft<T>(signal: ArrayView1<T>) -> Array1<Complex<T>>
 where
     T: FftNum + AudioSample
 {
@@ -18,7 +18,7 @@ where
 }
 
 /// Compute the inverse Fast Fourier Transform of the given signal in the frequency domain.
-pub fn ifft<T>(signal: &[Complex<T>]) -> Vec<T>
+pub fn ifft<T>(signal: ArrayView1<Complex<T>>) -> Array1<T>
 where
     T: FftNum + AudioSample
 {
@@ -42,20 +42,22 @@ where
     T: FftNum + AudioSample,
     F: Fn(f32, usize) -> T,
 {
-    let mut spectrum_samples = Vec::new();
+    let len = signal.len() / hop_length;
+    let mut spectrum_samples = Array2::from_elem((len, window_size), Complex { re: T::zero(), im: T::zero() });
 
     let window = build_window(window_fn, window_size);
 
-    for i in (0..signal.num_samples()).step_by(hop_length) {
-        let len = window_size.min(signal.num_samples() - i);
+    for i in (0..signal.len()).step_by(hop_length) {
+        let len = window_size.min(signal.len() - i);
 
-        let window_signal = signal.window(i..i + len) * SamplesRef(&window[..len]);
-        let spectrum = fft(&window_signal.0);
+        let window_signal = &signal.slice(s![i..i + len]) * &window.slice(s![..len]);
+        let spectrum = fft(window_signal.view());
 
-        spectrum_samples.push(spectrum);
+        let mut window_spectrum = spectrum_samples.slice_mut(s![i, ..]);
+        window_spectrum += &spectrum;
     }
 
-    SpectrumSignal { samples: spectrum_samples }
+    spectrum_samples
 }
 
 /// Compute the inverse short-time fourier transform of the given signal.
@@ -64,20 +66,20 @@ pub fn istft<T>(
     window_size: usize,
     hop_length: usize,
     num_samples: usize,
-) -> Vec<T>
+) -> Array1<T>
 where
     T: FftNum + AudioSample
 {
-    let mut samples = vec![T::zero(); num_samples];
+    let mut samples = Array1::from_elem(num_samples, T::zero());
 
-    for (i, spectrum) in signal.samples.into_iter().enumerate() {
-        let window_samples = ifft(&spectrum);
+    for (i, spectrum) in signal.axis_iter(Axis(0)).enumerate() {
+        let window_samples = ifft(spectrum);
         let start = i * hop_length;
         
-        samples[start..start + window_size]
+        samples.slice_mut(s![start..start + window_size])
             .iter_mut()
             .zip(window_samples.into_iter())
-            .for_each(|(s, win_s)| *s = *s + win_s);
+            .for_each(|(s, win_s)| *s += win_s);
     }
 
     samples

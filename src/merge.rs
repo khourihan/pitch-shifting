@@ -12,7 +12,6 @@ where
     V: AudioSample,
     F: Fn(T, U) -> V,
 {
-    assert!(a.sample_rate() == b.sample_rate() && a.num_samples() == b.num_samples());
-
-    TimeDomainSignal::from_iter(a.sample_rate(), a.into_samples().zip(b.into_samples()).map(|(s, t)| f(s, t)))
+    assert!(a.len() == b.len() && a.len() == b.len());
+    a.into_iter().zip(b.into_iter()).map(|(s, t)| f(s, t)).collect()
 }

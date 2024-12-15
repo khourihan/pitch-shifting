@@ -1,6 +1,8 @@
-use crate::sample::{AudioSample, ConvertSample, Samples};
+use ndarray::Array1;
 
-pub fn build_window<T, F>(f: F, window_size: usize) -> Samples<T>
+use crate::sample::{AudioSample, ConvertSample};
+
+pub fn build_window<T, F>(f: F, window_size: usize) -> Array1<T>
 where 
     T: AudioSample,
     F: Fn(f32, usize) -> T
