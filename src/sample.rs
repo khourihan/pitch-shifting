@@ -84,7 +84,7 @@ where
     }
 }
 
-impl<'a, T, U, I> Index<I> for SamplesRef<'a, T>
+impl<T, U, I> Index<I> for SamplesRef<'_, T>
 where 
     T: AudioSample,
     I: SliceIndex<[T], Output = U>,
@@ -97,7 +97,7 @@ where
     }
 }
 
-impl<'a, T, U, I> Index<I> for SamplesMut<'a, T>
+impl<T, U, I> Index<I> for SamplesMut<'_, T>
 where 
     T: AudioSample,
     I: SliceIndex<[T], Output = U>,
@@ -110,7 +110,7 @@ where
     }
 }
 
-impl<'a, T, U, I> IndexMut<I> for SamplesMut<'a, T>
+impl<T, U, I> IndexMut<I> for SamplesMut<'_, T>
 where 
     T: AudioSample,
     I: SliceIndex<[T], Output = U>,

@@ -1,4 +1,4 @@
-use crate::{sample::AudioSample, signal::time_domain::TimeDomainSignal};
+use crate::{sample::AudioSample, signal::TimeDomainSignal};
 
 /// Merge two [`TimeDomainSignal`]s into one by applying the given function `f` to each sample.
 ///

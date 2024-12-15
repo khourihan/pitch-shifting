@@ -1,4 +1,4 @@
-use crate::{sample::{AudioSample, SamplesRef}, signal::time_domain::TimeDomainSignal, windows::build_window};
+use crate::{sample::{AudioSample, SamplesRef}, signal::TimeDomainSignal, windows::build_window};
 
 /// Overlap Add
 pub fn ola<T, F>(

@@ -1,12 +1,14 @@
-use signal::time_domain::TimeDomainSignal;
+use signal::TimeDomainSignal;
 
 mod signal;
 mod sample;
 mod merge;
 mod ola;
 mod sola;
+mod phase_vocoder;
 mod windows;
 mod complex;
+mod fft;
 
 const WINDOW_SIZE_MS: f32 = 20.0;
 const HOP_LENGTH_MS: f32 = 8.0;
@@ -17,7 +19,7 @@ fn main() {
     let window_size = (signal.sample_rate() as f32 * WINDOW_SIZE_MS / 1000.0) as usize;
     let hop_length = (signal.sample_rate() as f32 * HOP_LENGTH_MS / 1000.0) as usize;
 
-    let stretched = sola::sola(
+    let stretched = phase_vocoder::phase_vocoder(
         signal,
         2.0,
         window_size,

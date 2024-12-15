@@ -2,18 +2,30 @@ use std::{ops::{Index, IndexMut}, slice::SliceIndex};
 
 use thiserror::Error;
 
-use crate::sample::{AudioSample, ConvertSample, SampleFormat, SamplesRef, SamplesMut};
+use crate::{complex::Complex, sample::{AudioSample, ConvertSample, SampleFormat, SamplesMut, SamplesRef}};
 
 /// A single-channel audio signal stored in the time domain.
 #[derive(Debug, Clone)]
 pub struct TimeDomainSignal<T: AudioSample> {
     /// All the samples of the signal.
     // TODO: Consider Arc<[T]>
-    samples: Vec<T>,
+    pub samples: Vec<T>,
     /// The number of samples per second, in Hz.
     ///
     /// A value of 44100 represents a typical 44.1 kHz sample rate.
-    sample_rate: u32,
+    pub sample_rate: u32,
+}
+
+/// A single-channel audio signal stored in the frequency domain.
+#[derive(Debug, Clone)]
+pub struct FrequencyDomainSignal<T: AudioSample> {
+    /// All the frequency/phase shift bins of the signal.
+    pub bins: Vec<Complex<T>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SpectrumSignal<T: AudioSample> {
+    pub samples: Vec<Vec<Complex<T>>>,
 }
 
 impl<T: AudioSample> TimeDomainSignal<T> {
