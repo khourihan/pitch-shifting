@@ -32,20 +32,17 @@ where
 }
 
 /// Compute the short-time fourier transform of the given signal in the time domain.
-pub fn stft<T, F>(
+pub fn stft<T>(
     signal: &TimeDomainSignal<T>,
     window_size: usize,
     hop_length: usize,
-    window_fn: F,
+    window: &Array1<T>,
 ) -> SpectrumSignal<T>
 where
     T: FftNum + AudioSample,
-    F: Fn(f32, usize) -> T,
 {
     let len = signal.len().div_ceil(hop_length);
     let mut spectrum_samples = Array2::from_elem((len, window_size), Complex { re: T::zero(), im: T::zero() });
-
-    let window = build_window(window_fn, window_size);
 
     for i in (0..signal.len()).step_by(hop_length) {
         let len = window_size.min(signal.len() - i);
@@ -71,21 +68,26 @@ pub fn istft<T>(
     window_size: usize,
     hop_length: usize,
     num_samples: usize,
+    window: &Array1<T>,
 ) -> Array1<T>
 where
-    T: FftNum + AudioSample
+    T: FftNum + AudioSample,
 {
     let mut samples = Array1::from_elem(num_samples, T::zero());
+    let mut weights = Array1::from_elem(num_samples, T::zero());
 
     for (i, spectrum) in signal.outer_iter().enumerate() {
-        let window_samples = ifft(spectrum);
+        let mut window_samples = ifft(spectrum);
         let start = i * hop_length;
+
+        window_samples *= &window.slice(s![..window_samples.len()]);
+
+        let mut win_weights = weights.slice_mut(s![start..start + window_size]);
+        win_weights += &window.slice(s![..window_samples.len()]);
         
-        samples.slice_mut(s![start..start + window_size])
-            .iter_mut()
-            .zip(window_samples.into_iter())
-            .for_each(|(s, win_s)| *s += win_s);
+        let mut win_samples = samples.slice_mut(s![start..start + window_size]);
+        win_samples += &window_samples;
     }
 
-    samples
+    samples / weights.mapv(|v| if v == T::zero() { T::one() } else { v })
 }

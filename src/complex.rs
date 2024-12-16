@@ -32,17 +32,17 @@ macro_rules! impl_complex_op_assign {
     ($opt:ident, $opf:ident, $op:tt) => {
         impl<T: AudioSample> $opt<Complex<T>> for Complex<T> {
             fn $opf(&mut self, rhs: Complex<T>) {
-                self.re = self.re $op rhs.re;
-                self.im = self.im $op rhs.im;
+                self.re $op rhs.re;
+                self.im $op rhs.im;
             }
         }
     }
 }
 
-impl_complex_op_assign!(AddAssign, add_assign, +);
-impl_complex_op_assign!(SubAssign, sub_assign, -);
-impl_complex_op_assign!(MulAssign, mul_assign, *);
-impl_complex_op_assign!(DivAssign, div_assign, /);
+impl_complex_op_assign!(AddAssign, add_assign, +=);
+impl_complex_op_assign!(SubAssign, sub_assign, -=);
+impl_complex_op_assign!(MulAssign, mul_assign, *=);
+impl_complex_op_assign!(DivAssign, div_assign, /=);
 
 macro_rules! impl_complex_op_scale {
     ($opt:ident, $opf:ident, $op:tt) => {
@@ -61,3 +61,19 @@ macro_rules! impl_complex_op_scale {
 
 impl_complex_op_scale!(Mul, mul, *);
 impl_complex_op_scale!(Div, div, /);
+
+macro_rules! impl_complex_op_scale_assign {
+    ($opt:ident, $opf:ident, $op:tt) => {
+        impl<T: AudioSample> $opt<T> for Complex<T> {
+            fn $opf(&mut self, rhs: T) {
+                self.re $op rhs;
+                self.im $op rhs;
+            }
+        }
+    }
+}
+
+impl_complex_op_scale_assign!(MulAssign, mul_assign, *=);
+impl_complex_op_scale_assign!(DivAssign, div_assign, /=);
+
+impl<T: AudioSample + 'static> ndarray::ScalarOperand for Complex<T> {}
