@@ -15,9 +15,9 @@ where
     F: Fn(f32, usize) -> T, 
 {
     let synth_hop_length = (hop_length as f32 * scale_factor) as usize;
-    let new_len = (signal.len() as f32 / hop_length as f32).ceil() as usize * synth_hop_length + window_size;
-    let mut new_signal = TimeDomainSignal::from_elem(new_len, T::zero());
-    let mut new_weights = TimeDomainSignal::from_elem(new_len, T::zero());
+    let synth_len = (signal.len() as f32 / hop_length as f32).ceil() as usize * synth_hop_length + window_size;
+    let mut synth_signal = TimeDomainSignal::from_elem(synth_len, T::zero());
+    let mut synth_weights = TimeDomainSignal::from_elem(synth_len, T::zero());
 
     let window = build_window(window_fn, window_size);
 
@@ -28,12 +28,12 @@ where
         let window_f = window.slice(s![..len]);
         let window_value = &signal.slice(s![i..i + len]) * &window_f;
 
-        let mut window_signal = new_signal.slice_mut(s![index..index + len]);
+        let mut window_signal = synth_signal.slice_mut(s![index..index + len]);
         window_signal += &window_value;
 
-        let mut window_weights = new_weights.slice_mut(s![index..index + len]);
+        let mut window_weights = synth_weights.slice_mut(s![index..index + len]);
         window_weights += &window.slice(s![..len]);
     }
 
-    new_signal / new_weights.mapv(|v| if v == T::zero() { T::one() } else { v })
+    synth_signal / synth_weights.mapv(|v| if v == T::zero() { T::one() } else { v })
 }

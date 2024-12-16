@@ -17,14 +17,14 @@ where
     F: Fn(f32, usize) -> f32
 {
     let frames = signal.len().div_ceil(hop_length);
-    let new_frames = (frames as f32 * scale_factor).ceil() as usize;
+    let synth_frames = (frames as f32 * scale_factor).ceil() as usize;
 
     let window = build_window(window_fn, window_size);
     let stft = stft(&signal, window_size, hop_length, &window);
     let mags = stft.mapv(|v| v.abs());
     let phases = stft.mapv(|v| f32::atan2(v.im, v.re));
 
-    let mut shifted_mags = Array2::from_elem((new_frames, window_size), 0f32);
+    let mut shifted_mags = Array2::from_elem((synth_frames, window_size), 0f32);
 
     for (i, mut shift_mag_win) in shifted_mags.outer_iter_mut().enumerate() {
         let index = i as f32 / scale_factor;
@@ -44,8 +44,8 @@ where
         shift_mag_win += &mags_win_1.mapv(|v| v * (1.0 - d1));
     }
 
-    let mut shifted_phases = Array2::from_elem((new_frames, window_size), 0f32);
-    let mut shifted_phase_diffs = Array2::from_elem((new_frames, window_size), 0f32);
+    let mut shifted_phases = Array2::from_elem((synth_frames, window_size), 0f32);
+    let mut shifted_phase_diffs = Array2::from_elem((synth_frames, window_size), 0f32);
 
     let phase_dim = phases.raw_dim();
     let mut phase_shifted = Array2::from_elem((1, phase_dim[1]), 0f32);
@@ -71,7 +71,7 @@ where
         shift_phase_win += &phase_win_1.mapv(|v| v * (1.0 - d1));
     }
 
-    let mut unshifted_phases = Array2::from_elem((new_frames, window_size), 0f32); 
+    let mut unshifted_phases = Array2::from_elem((synth_frames, window_size), 0f32); 
 
     for (i, mut phases_win) in unshifted_phases.outer_iter_mut().enumerate() {
         let index = (i as f32 / scale_factor).round() as usize;
@@ -80,7 +80,7 @@ where
 
     shifted_phases.slice_mut(s![0, ..]).assign(&shifted_phase_diffs.slice(s![0, ..]));
 
-    for t in 1..new_frames {
+    for t in 1..synth_frames {
         let time_phase = &shifted_phases.slice(s![t - 1, ..]) + &shifted_phase_diffs.slice(s![t, ..]);
         let freq_phase = &unshifted_phases.slice(s![t, ..]);
 
@@ -95,12 +95,12 @@ where
             .assign(&new_phase);
     }
 
-    let new_stft = Zip::from(&shifted_mags).and(&shifted_phases).map_collect(|&mag, &phase| {
+    let synth_stft = Zip::from(&shifted_mags).and(&shifted_phases).map_collect(|&mag, &phase| {
         Complex {
             re: mag * phase.cos(),
             im: mag * phase.sin(),
         }
     });
 
-    istft(new_stft, window_size, hop_length, new_frames * hop_length + window_size, &window)
+    istft(synth_stft, window_size, hop_length, synth_frames * hop_length + window_size, &window)
 }
