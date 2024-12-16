@@ -1,4 +1,6 @@
-use std::{alloc::Layout, ops::{AddAssign, DivAssign, MulAssign, SubAssign}};
+use std::alloc::Layout;
+
+use num_traits::NumAssign;
 
 pub trait AudioSample:
     Copy
@@ -9,10 +11,7 @@ pub trait AudioSample:
     + ConvertSample<i16>
     + ConvertSample<i32>
     + ConvertSample<f32>
-    + AddAssign<Self>
-    + SubAssign<Self>
-    + MulAssign<Self>
-    + DivAssign<Self>
+    + NumAssign
     + Sync
     + Send
 {

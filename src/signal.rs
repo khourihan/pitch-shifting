@@ -1,7 +1,8 @@
 use ndarray::{Array1, Array2};
+use num_complex::Complex;
 use thiserror::Error;
 
-use crate::{complex::Complex, sample::{AudioSample, ConvertSample, SampleFormat}};
+use crate::sample::{AudioSample, ConvertSample, SampleFormat};
 
 /// A single-channel audio signal stored in the time domain.
 pub type TimeDomainSignal<T: AudioSample> = Array1<T>;

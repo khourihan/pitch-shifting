@@ -1,7 +1,8 @@
 use ndarray::{s, Array1, Array2, ArrayView1, Axis};
-use rustfft::{FftNum, FftPlanner, num_complex::Complex as FftComplex};
+use rustfft::{FftNum, FftPlanner};
+use num_complex::Complex;
 
-use crate::{complex::Complex, sample::AudioSample, signal::{SpectrumSignal, TimeDomainSignal}, windows::build_window};
+use crate::{sample::AudioSample, signal::{SpectrumSignal, TimeDomainSignal}};
 
 /// Compute the Fast Fourier Transform of the given signal in the time domain.
 pub fn fft<T>(signal: ArrayView1<T>) -> Array1<Complex<T>>
@@ -11,7 +12,7 @@ where
     let mut planner = FftPlanner::<T>::new();
     let fft = planner.plan_fft_forward(signal.len());
 
-    let mut buffer: Vec<_> = signal.iter().map(|&s| FftComplex { re: s, im: T::zero() }).collect();
+    let mut buffer: Vec<_> = signal.iter().map(|&s| Complex { re: s, im: T::zero() }).collect();
     fft.process(&mut buffer);
 
     buffer.into_iter().map(|c| Complex { re: c.re, im: c.im }).collect()
@@ -25,7 +26,7 @@ where
     let mut planner = FftPlanner::<T>::new();
     let ifft = planner.plan_fft_inverse(signal.len());
 
-    let mut buffer: Vec<_> = signal.iter().map(|&s| FftComplex { re: s.re, im: s.im }).collect();
+    let mut buffer: Vec<_> = signal.iter().cloned().collect();
     ifft.process(&mut buffer);
 
     buffer.into_iter().map(|c| c.re).collect()
